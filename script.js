@@ -7,20 +7,34 @@ const videos = {
   ],
   lactose: [
     'NkX-TXkY2is','T_YuJUF0lvk','jGim409GMiM','JeCScQZ_t-s','QNJpDI7_McI','C_7ISX6kDpU','g6WXzRk6aak','J-T5FKLnCdg','A-DmDrm361s','kHSUZUUSh3c','s5jUyGT_uBU'
+  ],
+  podcasts: [
+    'mCW3W_t19J0', 'ZJ2wA4xicwo'
   ]
 };
 
-const labels = { career: 'CareerKaptain', government: 'Govt. Jobs', lactose: 'Lactose' };
+const labels = { 
+  career: 'CareerKaptain', 
+  government: 'Govt. Jobs', 
+  lactose: 'Lactose',
+  podcasts: 'Podcast'
+};
 
 Object.entries(videos).forEach(([group, ids]) => {
   const rail = document.getElementById(group);
+  if (!rail) return;
+  
   rail.innerHTML = ids.map((id, index) => {
-    const url = group === 'lactose' ? `https://www.youtube.com/watch?v=${id}` : `https://www.youtube.com/shorts/${id}`;
-    const type = group === 'lactose' ? 'Full video' : 'Short';
+    // Both Lactose and Podcasts are long-form landscape videos, the rest are shorts
+    const isLandscape = ['lactose', 'podcasts'].includes(group);
+    const url = isLandscape ? `https://www.youtube.com/watch?v=${id}` : `https://www.youtube.com/shorts/${id}`;
+    const type = isLandscape ? 'Full video' : 'Short';
+    
+    // Changed data-fallback to hqdefault.jpg to fix missing thumbnail issues
     return `<article class="video-card">
-      <button class="video-preview" type="button" data-video-id="${id}" data-video-url="${url}" data-video-format="${group === 'lactose' ? 'landscape' : 'portrait'}" data-video-title="${labels[group]} video ${index + 1}" aria-label="Play ${labels[group]} video ${index + 1} here">
+      <button class="video-preview" type="button" data-video-id="${id}" data-video-url="${url}" data-video-format="${isLandscape ? 'landscape' : 'portrait'}" data-video-title="${labels[group]} video ${index + 1}" aria-label="Play ${labels[group]} video ${index + 1} here">
         <span class="thumb">
-          <img src="https://i.ytimg.com/vi/${id}/maxresdefault.jpg" data-fallback="https://i.ytimg.com/vi/${id}/sddefault.jpg" alt="${labels[group]} video ${String(index + 1).padStart(2, '0')} thumbnail" loading="lazy" decoding="async" />
+          <img src="https://i.ytimg.com/vi/${id}/maxresdefault.jpg" data-fallback="https://i.ytimg.com/vi/${id}/hqdefault.jpg" alt="${labels[group]} video ${String(index + 1).padStart(2, '0')} thumbnail" loading="lazy" decoding="async" />
           <span class="play" aria-hidden="true">▶</span>
         </span>
       </button>
@@ -58,9 +72,11 @@ document.querySelectorAll('.video-preview').forEach(button => {
 });
 
 videoModal.querySelector('.modal-close').addEventListener('click', () => videoModal.close());
+
 videoModal.addEventListener('click', event => {
   if (event.target === videoModal) videoModal.close();
 });
+
 videoModal.addEventListener('close', stopVideo);
 
 document.querySelectorAll('.split-text').forEach(element => {
@@ -137,20 +153,22 @@ addEventListener('scroll', () => {
   if (!ticking) requestAnimationFrame(updateOnScroll);
   ticking = true;
 }, { passive: true });
+
 addEventListener('resize', updateOnScroll, { passive: true });
 updateOnScroll();
 
 document.querySelectorAll('[data-rail]').forEach(button => {
   button.addEventListener('click', () => {
     const rail = document.getElementById(button.dataset.rail);
-    rail.scrollBy({ left: rail.clientWidth * 0.72 * Number(button.dataset.dir), behavior: 'smooth' });
+    if(rail) rail.scrollBy({ left: rail.clientWidth * 0.72 * Number(button.dataset.dir), behavior: 'smooth' });
   });
 });
 
 if (matchMedia('(pointer: fine)').matches) {
   const cursor = document.querySelector('.cursor');
   addEventListener('pointermove', event => {
-    const suppress = Boolean(event.target.closest('img, .video-card'));
+    // Treat Instagram blockquotes and iframes as targets to suppress the cursor
+    const suppress = Boolean(event.target.closest('img, .video-card, iframe, blockquote'));
     cursor.classList.toggle('suppressed', suppress);
     cursor.style.opacity = suppress ? '0' : '1';
     cursor.style.transform = `translate(${event.clientX - 9}px, ${event.clientY - 9}px)`;
